@@ -1,0 +1,102 @@
+// /prisma/schema.prisma
+
+datasource db {
+  provider          = "postgresql"
+  url               = env("DATABASE_URL")
+  shadowDatabaseUrl = env("SHADOW_DATABASE_URL") // Optional for cloud providers
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id                    String    @id @default(cuid())
+  name                  String?
+  email                 String?   @unique
+  emailVerified         DateTime?
+  image                 String?
+  password              String?
+  passwordResetToken    String?   @unique
+  passwordResetTokenExp DateTime?
+  customerId            String?   @unique
+  has_access            Boolean   @default(false)
+
+  accounts    Account[]
+  sessions    Session[]
+  purchases   Purchase[]
+  subscriptions Subscription[]
+}
+
+model Purchase {
+  id           Int      @id @default(autoincrement())
+  userId       String
+  productId    Int
+  status       String
+  purchaseId   String  
+  email        String
+  renewalDate  DateTime? // New field for subscription renewals
+  planType     String?    // New field for subscription plans
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model Subscription {
+  id             String   @id @default(cuid())
+  userId         String
+  productId      Int
+  status         String
+  subscriptionId String   @unique 
+  email          String
+  startDate      DateTime
+  endDate        DateTime
+  renewalDate    DateTime?
+  planType       String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+
+model NewsletterEmail {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  createdAt DateTime @default(now())
+}
+
+model TradingViewSubmission {
+  id            Int      @id @default(autoincrement())
+  tradingViewId String
+  email         String
+  strategyName  String?  // Make it nullable
+}
